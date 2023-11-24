@@ -1,5 +1,5 @@
 ---
-title: Page Title
+title: Auth
 description: Page description.
 ---
 
