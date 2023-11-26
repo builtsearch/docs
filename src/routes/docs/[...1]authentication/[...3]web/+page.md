@@ -1,5 +1,5 @@
 ---
-title: Get Started
+title: Web
 ---
 
 # {$frontmatter.title}
@@ -86,6 +86,8 @@ The redirectURL parameter serves the purpose of redirecting users back to your a
 
 It is advisable to ensure that your redirectURL possesses server-side rendering capabilities. This is necessary because the redirectURL will receive an encrypted custom token within its query parameters, which is utilized for user authentication. In cases where you are employing a client-side framework, it becomes necessary to implement a server-side rendering solution to effectively manage the custom token.
 
+## Decrypt Token
+
 To complete the authentication process, you'll need to decrypt this token using the AES-256-CBC encryption algorithm, with your appSignature serving as the decryption key. Your appSignature is a confidential key that has been registered with Builtsearch.
 
 Please ensure that your application is equipped to handle this decryption step, as your appSignature plays a crucial role in securely processing the received token.
@@ -96,7 +98,7 @@ An additional HTTPS endpoint has been made available for your convenience, facil
 // APP_SIGNATURE is your secret string that is used to decrypt the custom token
 const APP_SIGNATURE = "xxxxxxxxxxxxx";
 const encryptedToken = url.searchParams.get("encryptedToken");
-const resp = await fetch(`${PUBLIC_AUTH_SERVER_URL}/api/utils/decrypt-token`, {
+const resp = await fetch(`https://auth.builtsearch.com/api/utils/decrypt-token`, {
 	method: "POST",
 	headers: {
 		"content-type": "application/json"
@@ -106,4 +108,49 @@ const resp = await fetch(`${PUBLIC_AUTH_SERVER_URL}/api/utils/decrypt-token`, {
 const token = await resp.text();
 
 // signInWithCustomToken using this token
+```
+
+## Sign in with Custom Token
+
+Once you have successfully decrypted the token, you can initiate the user's sign-in process using the Firebase `signInWithCustomToken` function. To manage user session persistence effectively, please consult the Firebase documentation for guidance on configuring sign-in persistency.
+
+If you are using the Firebase SDK with local browser persistency, the user's session will remain active indefinitely. Firebase achieves this by utilizing refresh tokens to refresh the user's session automatically.
+
+```js
+import {
+	getAuth,
+	signInWithEmailAndPassword,
+	setPersistence,
+	browserLocalPersistence
+} from "firebase/auth";
+
+const auth = getAuth();
+
+try {
+	setPersistence(auth, browserSessionPersistence);
+	const userCredential = await signInWithCustomToken(auth, customToken);
+	const user = userCredential.user;
+	console.log(user.uid);
+} catch (error) {
+	console.log(error.code, error.message);
+}
+```
+
+## Set an authentication state observer and get user data
+
+Attach the observer using the onAuthStateChanged method. When a user successfully signs in, you can get information about the user in the observer.
+
+```js
+import { getAuth, onAuthStateChanged } from "firebase/auth";
+
+const auth = getAuth();
+onAuthStateChanged(auth, (user) => {
+	if (user) {
+		const uid = user.uid;
+		// this will trigger after signInWithCustomToken
+		// user is signed in
+	} else {
+		// User is not signed in
+	}
+});
 ```
